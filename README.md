@@ -110,18 +110,9 @@ curl http://localhost:8080/app2/text
 ├── monitoring/
 │   ├── prometheus.yml
 │   └── grafana/
-│       ├── dashboards/
-│       │   └── overview.json
 │       └── provisioning/
 │           ├── datasources/
 │           └── dashboards/
-├── k8s/                   # Kubernetes manifests
-│   ├── namespace.yaml
-│   ├── redis.yaml
-│   ├── app1.yaml
-│   ├── app2.yaml
-│   ├── nginx.yaml
-│   └── monitoring.yaml
 ├── docs/
 │   ├── architecture.drawio  # Diagrama editavel
 │   └── diagram.svg       # Diagrama ASCII (legado)
@@ -171,13 +162,25 @@ curl http://localhost:8002/health
 
 ## 💡 Pontos de Melhoria
 
-1. **Alta Disponibilidade**: Redis Sentinel ou Cluster
-2. **Escalabilidade**: HPA automatico por CPU/memoria
-3. **Seguranca**: Kubernetes Secrets + Vault
-4. **CI/CD**: GitHub Actions completo
-5. **Alerting**: AlertManager + PagerDuty
-6. **Logging**: ELK Stack ou Loki
-7. **SSL/TLS**: Cert-manager + Let's Encrypt
+**Orquestração**
+- Migrar para Kubernetes com Deployments, Services e HPA para escalonamento automático por CPU/memória
+- Usar Helm charts para facilitar deploys em múltiplos ambientes (dev/staging/prod)
+
+**Alta Disponibilidade**
+- Redis Sentinel ou Redis Cluster para eliminar o single point of failure na camada de cache
+- Múltiplas réplicas das aplicações com balanceamento de carga
+
+**Segurança**
+- Gerenciamento de secrets com HashiCorp Vault ou Kubernetes Secrets (sem senha hardcoded)
+- TLS/HTTPS com cert-manager e Let's Encrypt
+
+**CI/CD**
+- Pipeline com GitHub Actions: build, testes, lint e push de imagem para registry
+- Deploy automático ao merge na branch principal
+
+**Observabilidade**
+- Alertas no AlertManager integrado ao Prometheus
+- Centralização de logs com Loki ou ELK Stack
 
 ## 👤 Autor
 
