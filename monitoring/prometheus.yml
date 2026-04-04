@@ -1,0 +1,42 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+rule_files: []
+
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # App 1 - Python FastAPI
+  - job_name: 'app1'
+    static_configs:
+      - targets: ['app1:8001']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # App 2 - Go
+  - job_name: 'app2'
+    static_configs:
+      - targets: ['app2:8002']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # Redis (via redis_exporter if available)
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+    scrape_interval: 30s
+
+  # Nginx
+  - job_name: 'nginx'
+    static_configs:
+      - targets: ['nginx-exporter:9113']
+    scrape_interval: 30s
