@@ -163,7 +163,7 @@ curl http://localhost:8002/health
 ## 💡 Pontos de Melhoria
 
 **Orquestração**
-- Migrar para Kubernetes com Deployments, Services e HPA para escalonamento automático por CPU/memória
+- Migrar para Kubernetes com Deployments, Services e HPA(Horizontal Pod Autoscaler) para escalonamento automático por CPU/memória
 - Usar Helm charts para facilitar deploys em múltiplos ambientes (dev/staging/prod)
 
 **Alta Disponibilidade**
