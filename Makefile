@@ -1,4 +1,6 @@
-.PHONY: help up down build logs test clean restart redis-cli bash-app1 bash-app2
+.PHONY: help up down build logs test clean restart redis-cli bash-app1 bash-app2 \
+        tf-init tf-plan tf-apply tf-destroy tf-validate tf-fmt tf-output \
+        scan scan-tf scan-tf-plan scan-compose scan-docker scan-images scan-code scan-secrets
 
 # Cores
 GREEN  := \033[0;32m
@@ -151,6 +153,119 @@ dev-app1: ## Sobe apenas App 1 e Redis
 
 dev-app2: ## Sobe apenas App 2 e Redis
 	docker-compose up -d redis app2
+
+# ============================================
+# TERRAFORM
+# ============================================
+
+TF_DIR := terraform
+
+tf-init: ## Inicializa o Terraform (baixa o provider Docker)
+	@echo "$(YELLOW)Inicializando Terraform...$(NC)"
+	cd $(TF_DIR) && terraform init
+	@echo "$(GREEN)✓ Terraform inicializado!$(NC)"
+
+tf-validate: ## Valida a sintaxe dos arquivos Terraform
+	@echo "$(YELLOW)Validando configuração...$(NC)"
+	cd $(TF_DIR) && terraform validate
+	@echo "$(GREEN)✓ Configuração válida!$(NC)"
+
+tf-fmt: ## Formata os arquivos Terraform
+	cd $(TF_DIR) && terraform fmt -recursive
+
+tf-plan: ## Mostra o plano de execução sem aplicar
+	@echo "$(YELLOW)Gerando plano Terraform...$(NC)"
+	cd $(TF_DIR) && terraform plan
+
+tf-apply: ## Sobe a infraestrutura via Terraform
+	@echo "$(YELLOW)Aplicando infraestrutura Terraform...$(NC)"
+	cd $(TF_DIR) && terraform apply -auto-approve
+	@echo ""
+	@echo "$(GREEN)✓ Infraestrutura provisionada!$(NC)"
+	@echo ""
+	cd $(TF_DIR) && terraform output
+
+tf-destroy: ## Destrói toda a infraestrutura Terraform
+	@echo "$(YELLOW)Destruindo infraestrutura...$(NC)"
+	cd $(TF_DIR) && terraform destroy -auto-approve
+	@echo "$(GREEN)✓ Infraestrutura destruída!$(NC)"
+
+tf-output: ## Mostra os outputs (URLs dos serviços)
+	cd $(TF_DIR) && terraform output
+
+# ============================================
+# SEGURANÇA / SCANNING
+# Todas as ferramentas rodam via Docker — sem instalação local necessária.
+# ============================================
+
+scan: scan-secrets scan-docker scan-tf scan-compose scan-code ## Executa todos os scans estáticos
+	@echo "$(GREEN)✓ Scans concluídos!$(NC)"
+
+scan-secrets: ## Gitleaks — detecta senhas e tokens no repositório git
+	@echo "$(BLUE)=== Gitleaks: segredos no git ===$(NC)"
+	docker run --rm \
+		-v "$(CURDIR):/repo" \
+		zricethezav/gitleaks detect --source /repo
+
+scan-docker: ## Hadolint — lint dos Dockerfiles
+	@echo "$(BLUE)=== Hadolint: Dockerfiles ===$(NC)"
+	docker run --rm \
+		-v "$(CURDIR):/project:ro" \
+		-v "$(CURDIR)/.hadolint.yaml:/hadolint.yaml:ro" \
+		--entrypoint /bin/hadolint \
+		hadolint/hadolint \
+		--config /hadolint.yaml \
+		/project/app1/Dockerfile \
+		/project/app2/Dockerfile \
+		/project/scripts/Dockerfile
+
+scan-tf: ## Checkov — misconfigurations nos arquivos .tf
+	@echo "$(BLUE)=== Checkov: Terraform ===$(NC)"
+	docker run --rm \
+		-v "$(CURDIR)/terraform:/tf:ro" \
+		-v "$(CURDIR)/.checkov.yaml:/.checkov.yaml:ro" \
+		bridgecrew/checkov -d /tf --framework terraform --compact \
+		--config-file /.checkov.yaml
+
+scan-tf-plan: ## Checkov — escaneia o plan real do Terraform (mais preciso que scan-tf)
+	@echo "$(YELLOW)Gerando plan file...$(NC)"
+	cd $(TF_DIR) && terraform plan -out=tfplan.binary
+	cd $(TF_DIR) && terraform show -json tfplan.binary > tfplan.json
+	@echo "$(BLUE)=== Checkov: Terraform Plan ===$(NC)"
+	docker run --rm \
+		-v "$(CURDIR)/terraform:/tf:ro" \
+		bridgecrew/checkov -f /tf/tfplan.json --framework terraform_plan --compact
+	@rm -f $(TF_DIR)/tfplan.binary $(TF_DIR)/tfplan.json
+
+scan-compose: ## Checkov — misconfigurations no docker-compose.yml
+	@echo "$(BLUE)=== Checkov: Docker Compose ===$(NC)"
+	docker run --rm \
+		-v "$(CURDIR):/project:ro" \
+		bridgecrew/checkov -f /project/docker-compose.yml --compact
+
+scan-code: ## Bandit (Python/app1) + Gosec (Go/app2)
+	@echo "$(BLUE)=== Bandit: app1 (Python) ===$(NC)"
+	docker run --rm \
+		-v "$(CURDIR)/app1:/app:ro" \
+		ghcr.io/pycqa/bandit/bandit:latest \
+		-r /app -ll -ii
+	@echo ""
+	@echo "$(BLUE)=== Gosec: app2 (Go) ===$(NC)"
+	docker run --rm \
+		-v "$(CURDIR)/app2:/app:ro" \
+		-w /app \
+		securego/gosec:latest -severity medium ./...
+
+scan-images: ## Trivy — CVEs nas imagens buildadas (requer make build antes)
+	@echo "$(BLUE)=== Trivy: imagens Docker ===$(NC)"
+	@echo "$(YELLOW)→ devops-test/app1:latest$(NC)"
+	docker run --rm \
+		-v /var/run/docker.sock:/var/run/docker.sock \
+		aquasec/trivy image --severity HIGH,CRITICAL devops-test/app1:latest
+	@echo "$(YELLOW)→ devops-test/app2:latest$(NC)"
+	docker run --rm \
+		-v /var/run/docker.sock:/var/run/docker.sock \
+		aquasec/trivy image --severity HIGH,CRITICAL devops-test/app2:latest
 
 # ============================================
 # GIT

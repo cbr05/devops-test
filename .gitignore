@@ -25,3 +25,17 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Terraform
+terraform/.terraform/
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+terraform/tfplan.binary
+terraform/tfplan.json
+terraform/*.tfvars
+
+# Security scan outputs
+*.sarif
+trivy-results.*
+checkov-results.*
+gitleaks-report.*

@@ -264,5 +264,12 @@ func main() {
 	handler := loggingMiddleware(mux)
 
 	log.Printf("Starting App 2 on port 8002 (cache TTL: %d seconds)", cacheTTL)
-	log.Fatal(http.ListenAndServe(":8002", handler))
+	server := &http.Server{
+		Addr:         ":8002",
+		Handler:      handler,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  120 * time.Second,
+	}
+	log.Fatal(server.ListenAndServe())
 }

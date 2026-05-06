@@ -1,0 +1,23 @@
+# Configuração do Gitleaks
+# Allowlist para senhas de desenvolvimento conhecidas — NÃO usar em produção.
+
+title = "devops-test gitleaks config"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+  description = "Senhas de dev hardcoded intencionalmente"
+  regexTarget = "line"
+  regexes = [
+    # Senha Redis e Grafana usadas apenas em ambiente local
+    "redis123",
+    "admin123",
+  ]
+  paths = [
+    # Arquivos onde as senhas de dev são esperadas
+    "docker-compose\\.yml",
+    "terraform/variables\\.tf",
+    "redis/redis\\.conf",
+    "Makefile",
+  ]
