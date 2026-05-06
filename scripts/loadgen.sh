@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh  
 echo "Starting load generator..."
 while true; do
   curl -s http://app1:8001/text > /dev/null 2>&1
